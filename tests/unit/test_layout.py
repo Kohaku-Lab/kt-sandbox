@@ -3,6 +3,7 @@
 import ast
 import importlib
 import pkgutil
+import re
 from pathlib import Path
 
 import pytest
@@ -75,3 +76,13 @@ def test_file_size_and_future_imports(path):
     assert (
         futures == []
     ), f"{path.name} imports __future__; quote the annotation instead"
+
+
+def test_every_console_script_points_at_a_function():
+    text = (ROOT.parent / "pyproject.toml").read_text(encoding="utf-8")
+    section = text.split("[project.scripts]", 1)[1].split("\n[", 1)[0]
+    scripts = dict(re.findall(r'^([\w-]+) = "([^"]+)"$', section, re.M))
+    assert set(scripts) == {"kt-sandbox", "kt-sandbox-mcp", "kt-sandbox-about"}
+    for target in scripts.values():
+        module, _, function = target.partition(":")
+        assert callable(getattr(importlib.import_module(module), function)), target

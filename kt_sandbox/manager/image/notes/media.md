@@ -1,0 +1,3 @@
+- ffmpeg, ffprobe and ImageMagick 7 (`magick`; `convert` also works) are installed.
+- One frame of a video: `ffmpeg -i in.mp4 -frames:v 1 frame.png`; its length: `ffprobe -v error -show_entries format=duration -of csv=p=0 in.mp4`.
+- At `strict` (64 processes) add `-threads 1` when ffmpeg stops with "Resource temporarily unavailable".

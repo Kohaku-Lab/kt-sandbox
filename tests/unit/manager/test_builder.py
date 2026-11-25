@@ -20,6 +20,28 @@ class TestPrepareContext:
             "data",
         }
 
+    def test_every_tier_ships_usage_notes(self, tmp_path):
+        builder.prepare_context(tmp_path)
+        tiers = {path.stem for path in (tmp_path / "apt").glob("*.txt")}
+        tiers |= {path.stem for path in (tmp_path / "pip").glob("*.txt")}
+        notes = {path.stem for path in (tmp_path / "notes").glob("*.md")}
+        assert notes == tiers == {"slim", "data", "render", "dev", "media", "browser"}
+        for note in (tmp_path / "notes").glob("*.md"):
+            text = note.read_text(encoding="utf-8")
+            assert text.strip() and len(text.splitlines()) <= 12, note.name
+            assert not text.lstrip().startswith("#"), note.name
+
+    def test_the_image_records_its_tiers_and_has_the_about_command(self, tmp_path):
+        builder.prepare_context(tmp_path)
+        dockerfile = (tmp_path / "Dockerfile").read_text(encoding="utf-8")
+        assert "COPY notes /tmp/notes" in dockerfile
+        assert "/usr/local/share/kt-sandbox/tiers" in dockerfile
+        assert "exec python -m kt_sandbox.server.about" in dockerfile
+        assert "/usr/local/bin/kt-sandbox-about" in dockerfile
+        assert dockerfile.index("/usr/local/share/kt-sandbox") < dockerfile.index(
+            "USER sandbox"
+        )
+
     def test_the_image_installs_only_the_runtime_requirements(self, tmp_path):
         builder.prepare_context(tmp_path)
 
@@ -70,6 +92,7 @@ class TestPrepareContext:
         assert (builder.BUILD_DIR / "Dockerfile").is_file()
         assert (builder.BUILD_DIR / builder.RUNTIME_REQUIREMENTS).is_file()
         assert (builder.BUILD_DIR / builder.RUNTIME_NO_DEPS).is_file()
+        assert sorted(p.name for p in (builder.BUILD_DIR / "notes").glob("*.md"))
 
 
 class TestBuildCommand:

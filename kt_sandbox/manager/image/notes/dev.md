@@ -1,0 +1,3 @@
+- gcc, make, git, node, npm, jq, ripgrep (`rg`), sqlite3, pytest (`python3 -m pytest`) and ipython are installed.
+- `git clone` of GitHub repositories works at `standard` and `open`.
+- `npm install` needs the `open` level; at `standard` the egress proxy refuses npm's requests (407).

@@ -1,6 +1,8 @@
 # The sandbox image, layered by tier. Build it with `kt-sandbox build`.
 #
 # `slim` is always installed; EXTRAS adds the tiers named in apt/ and pip/.
+# The tiers and their notes/ are kept in /usr/local/share/kt-sandbox for
+# kt-sandbox-about.
 # The builder copies the installed kt_sandbox package into kt_sandbox/; it runs
 # from /opt/kt-sandbox with only the packages in the runtime-requirements files.
 ARG BASE=python:3.12-slim
@@ -44,13 +46,24 @@ RUN set -eu; \
     rm -rf "$(python -c 'import sysconfig; print(sysconfig.get_paths()["purelib"])')/kohakuterrarium/web_dist"; \
     rm -rf /tmp/runtime-requirements.txt /tmp/runtime-requirements-no-deps.txt /tmp/tiers
 
+COPY notes /tmp/notes
+RUN set -eu; \
+    mkdir -p /usr/local/share/kt-sandbox/notes; \
+    for tier in slim $(echo "$EXTRAS" | tr ',' ' '); do \
+        echo "$tier" >> /usr/local/share/kt-sandbox/tiers; \
+        if [ -f "/tmp/notes/$tier.md" ]; then cp "/tmp/notes/$tier.md" /usr/local/share/kt-sandbox/notes/; fi; \
+    done; \
+    chmod -R u=rwX,go=rX /usr/local/share/kt-sandbox; \
+    rm -rf /tmp/notes
+
 COPY kt_sandbox /opt/kt-sandbox/kt_sandbox
 ENV PYTHONPATH=/opt/kt-sandbox
 RUN set -eu; \
     python -m compileall -q /opt/kt-sandbox; \
     printf '#!/bin/sh\nexec python -m kt_sandbox.server "$@"\n' > /usr/local/bin/kt-sandbox-mcp; \
+    printf '#!/bin/sh\nexec python -m kt_sandbox.server.about "$@"\n' > /usr/local/bin/kt-sandbox-about; \
     printf '#!/bin/sh\nexec python -m kt_sandbox "$@"\n' > /usr/local/bin/kt-sandbox; \
-    chmod 0755 /usr/local/bin/kt-sandbox-mcp /usr/local/bin/kt-sandbox
+    chmod 0755 /usr/local/bin/kt-sandbox-mcp /usr/local/bin/kt-sandbox-about /usr/local/bin/kt-sandbox
 
 USER sandbox
 WORKDIR /work

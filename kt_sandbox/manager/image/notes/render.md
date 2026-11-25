@@ -1,0 +1,3 @@
+- SVG to PNG: `rsvg-convert -o out.png in.svg`, or `cairosvg.svg2png(url="in.svg", write_to="out.png")` in Python.
+- HTML to PDF: `weasyprint in.html out.pdf`; add `--encoding utf-8` (or `<meta charset="utf-8">`) for non-ASCII text.
+- PDF to PNG: `pdftoppm -png -r 100 in.pdf page` writes `page-1.png`, ...; `import pymupdf` reads text and pages, and `read` shows PDF pages.

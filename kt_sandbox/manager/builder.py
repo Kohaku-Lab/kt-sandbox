@@ -15,12 +15,12 @@ RUNTIME_NO_DEPS = "runtime-requirements-no-deps.txt"
 
 
 def prepare_context(destination: Path) -> None:
-    """Fill ``destination`` with the Dockerfile, the tier files, the runtime
-    requirements and a copy of the installed ``kt_sandbox`` package."""
+    """Fill ``destination`` with the Dockerfile, the tier files and notes, the
+    runtime requirements and a copy of the installed ``kt_sandbox`` package."""
     shutil.copy(BUILD_DIR / "Dockerfile", destination / "Dockerfile")
     for requirements in (RUNTIME_REQUIREMENTS, RUNTIME_NO_DEPS):
         shutil.copy(BUILD_DIR / requirements, destination / requirements)
-    for tiers in ("apt", "pip"):
+    for tiers in ("apt", "pip", "notes"):
         shutil.copytree(BUILD_DIR / tiers, destination / tiers)
     shutil.copytree(
         PACKAGE_DIR,

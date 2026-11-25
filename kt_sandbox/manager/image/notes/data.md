@@ -1,0 +1,3 @@
+- numpy, pandas, scipy, sympy, matplotlib and pillow are installed.
+- matplotlib draws with the Agg backend (`MPLBACKEND=Agg`): save figures with `fig.savefig("chart.png")` and show them with `read`.
+- For CJK labels set `plt.rcParams["font.family"] = "Noto Sans CJK JP"`.

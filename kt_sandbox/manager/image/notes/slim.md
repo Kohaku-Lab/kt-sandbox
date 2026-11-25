@@ -1,0 +1,3 @@
+- Python 3 with `pip`; `curl`, `less` and `ps` are installed.
+- Noto CJK fonts are installed (`fc-list :lang=zh family` lists them), so Chinese, Japanese and Korean text renders.
+- Without sudo, `pip install NAME` installs into `~/.local`; its scripts land in `~/.local/bin`, which is not on `PATH` (run them by full path or with `python3 -m`).
