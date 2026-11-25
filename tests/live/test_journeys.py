@@ -6,6 +6,7 @@ import os
 import socket
 import time
 
+import docker
 import httpx
 import pytest
 import yaml
@@ -423,7 +424,12 @@ async def test_set_up_open_save_and_reopen_strict(
     assert box.exec_run(["pkill", "-f", "kt-sandbox-mcp"])[0] == 0
     wait_closed(port)
 
-    # A sandbox whose server predates KohakuTerrarium's tools is left alone.
+    # A sandbox whose server predates KohakuTerrarium's tools is left alone;
+    # this step needs that old image on this machine and never pulls it.
+    try:
+        manager.client.images.get(OLD_IMAGE)
+    except docker.errors.ImageNotFound:
+        return
     old = names("old")
     manager.up(old, level_name="open", image=OLD_IMAGE)
     with pytest.raises(ManagerError, match="too old to upgrade in place"):
