@@ -5,6 +5,7 @@
 # kt-sandbox-about.
 # The builder copies the installed kt_sandbox package into kt_sandbox/; it runs
 # from /opt/kt-sandbox with only the packages in the runtime-requirements files.
+# Each command is a Python script, so its name shows in the process list.
 ARG BASE=python:3.12-slim
 FROM ${BASE}
 
@@ -60,10 +61,12 @@ COPY kt_sandbox /opt/kt-sandbox/kt_sandbox
 ENV PYTHONPATH=/opt/kt-sandbox
 RUN set -eu; \
     python -m compileall -q /opt/kt-sandbox; \
-    printf '#!/bin/sh\nexec python -m kt_sandbox.server "$@"\n' > /usr/local/bin/kt-sandbox-mcp; \
-    printf '#!/bin/sh\nexec python -m kt_sandbox.server.about "$@"\n' > /usr/local/bin/kt-sandbox-about; \
-    printf '#!/bin/sh\nexec python -m kt_sandbox "$@"\n' > /usr/local/bin/kt-sandbox; \
-    chmod 0755 /usr/local/bin/kt-sandbox-mcp /usr/local/bin/kt-sandbox-about /usr/local/bin/kt-sandbox
+    wrap() { printf '#!/usr/bin/env python\nimport runpy, sys\nsys.path.insert(0, "/opt/kt-sandbox")\nrunpy.run_module("%s", run_name="__main__", alter_sys=True)\n' "$1" > "/usr/local/bin/$2"; }; \
+    wrap kt_sandbox.server kt-sandbox-mcp; \
+    wrap kt_sandbox.server.about kt-sandbox-about; \
+    wrap kt_sandbox kt-sandbox; \
+    wrap kt_sandbox.server.files kt-sandbox-file; \
+    chmod 0755 /usr/local/bin/kt-sandbox-mcp /usr/local/bin/kt-sandbox-about /usr/local/bin/kt-sandbox /usr/local/bin/kt-sandbox-file
 
 USER sandbox
 WORKDIR /work

@@ -17,6 +17,7 @@ from starlette.routing import Route
 from starlette.types import Receive, Scope, Send
 
 from kt_sandbox import __version__
+from kt_sandbox.server import files
 from kt_sandbox.server.about.document import COMMAND
 from kt_sandbox.server.settings import ServerSettings
 from kt_sandbox.server.tools.catalog import Toolbox
@@ -78,10 +79,7 @@ def instructions(settings: ServerSettings, about_file: Path | None = None) -> st
     if settings.name:
         text = (
             f"You work inside the sandbox {settings.name}: these tools run there, "
-            f"in {settings.workdir}, and files and packages stay between calls. A "
-            "file here can be handed to a tool that takes a file or media argument by "
-            f"writing it as `sandbox:{settings.name}/<path>`; a tool without sandbox "
-            "support says so."
+            f"in {settings.workdir}, and files and packages stay between calls."
         )
     else:
         text = (
@@ -161,7 +159,7 @@ class SandboxServer:
                 self.toolbox.runner.close()
 
     def http_app(self, host: str) -> Starlette:
-        """Return the streamable-HTTP app serving at ``/mcp``.
+        """Return the streamable-HTTP app serving MCP at ``/mcp`` and files at ``/mcp/files``.
 
         Bound to a loopback address it accepts only loopback ``Host`` and
         ``Origin`` headers, against DNS rebinding.
@@ -181,6 +179,13 @@ class SandboxServer:
             app=self.server, security_settings=security
         )
         return Starlette(
-            routes=[Route(HTTP_PATH, endpoint=_Endpoint(manager))],
+            routes=[
+                Route(
+                    files.ROUTE_PATH,
+                    endpoint=files.endpoint(self.settings),
+                    methods=["GET"],
+                ),
+                Route(HTTP_PATH, endpoint=_Endpoint(manager)),
+            ],
             lifespan=lambda app: self._http_lifespan(manager),
         )

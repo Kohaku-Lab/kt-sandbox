@@ -11,8 +11,8 @@ class TestPrepareContext:
         builder.prepare_context(tmp_path)
         dockerfile = (tmp_path / "Dockerfile").read_text(encoding="utf-8")
         assert "useradd" in dockerfile and "PYTHONPATH=/opt/kt-sandbox" in dockerfile
-        assert "exec python -m kt_sandbox.server" in dockerfile
-        assert "exec python -m kt_sandbox " in dockerfile
+        assert "wrap kt_sandbox.server kt-sandbox-mcp;" in dockerfile
+        assert "wrap kt_sandbox kt-sandbox;" in dockerfile
         tiers = {path.stem for path in (tmp_path / "apt").glob("*.txt")}
         assert tiers == {"slim", "render", "dev", "media", "browser"}
         assert {path.stem for path in (tmp_path / "pip").glob("*.txt")} >= {
@@ -36,8 +36,7 @@ class TestPrepareContext:
         dockerfile = (tmp_path / "Dockerfile").read_text(encoding="utf-8")
         assert "COPY notes /tmp/notes" in dockerfile
         assert "/usr/local/share/kt-sandbox/tiers" in dockerfile
-        assert "exec python -m kt_sandbox.server.about" in dockerfile
-        assert "/usr/local/bin/kt-sandbox-about" in dockerfile
+        assert "wrap kt_sandbox.server.about kt-sandbox-about;" in dockerfile
         assert dockerfile.index("/usr/local/share/kt-sandbox") < dockerfile.index(
             "USER sandbox"
         )

@@ -26,11 +26,12 @@ def at_level(level_name: str, name: str = "lab", **overrides) -> ServerSettings:
 
 
 class TestInstructions:
-    def test_a_named_sandbox_gives_the_file_handle(self):
+    def test_a_named_sandbox_names_itself_without_a_file_handle(self):
         text = instructions(ServerSettings(Path("/work"), name="lab"))
-        assert text.startswith("You work inside the sandbox lab:")
-        assert "in /work" in text and "`sandbox:lab/<path>`" in text
-        assert "a tool without sandbox support says so" in text
+        assert text == (
+            "You work inside the sandbox lab: these tools run there, in /work, "
+            "and files and packages stay between calls."
+        )
 
     def test_without_a_name_there_is_no_handle(self):
         text = instructions(ServerSettings(Path("/work")))

@@ -83,7 +83,7 @@ async def journey(session: ClientSession, workdir) -> str:
     """Every tool, success and failure, through one MCP session; return the instructions."""
     init = await session.initialize()
     assert init.instructions.startswith("You work inside the sandbox lab:")
-    assert "`sandbox:lab/<path>`" in init.instructions
+    assert "sandbox:lab/" not in init.instructions
 
     tools = (await session.list_tools()).tools
     assert {t.name: (t.description, t.inputSchema) for t in tools} == kt_schemas()
@@ -271,7 +271,22 @@ async def test_http_journey_with_the_bearer_token(http_server, tmp_path):
         ):
             async with ClientSession(read, write) as session:
                 instructions = await journey(session, tmp_path)
-    assert "\n" not in instructions and "kt-sandbox-about" not in instructions
+        assert "\n" not in instructions and "kt-sandbox-about" not in instructions
+
+        # The same port and token hand out files at /mcp/files.
+        (tmp_path / "out").mkdir(exist_ok=True)
+        (tmp_path / "out" / "x.bin").write_bytes(bytes(range(256)) * 1000)
+        files_url = f"{http_server}/files"
+        got = await http_client.get(files_url, params={"path": "out/x.bin"})
+        assert got.status_code == 200 and got.content == bytes(range(256)) * 1000
+        assert got.headers["content-length"] == "256000"
+        big = await http_client.get(
+            files_url, params={"path": "out/x.bin", "max_bytes": "10"}
+        )
+        assert big.status_code == 413 and "10-byte limit" in big.json()["error"]
+    async with httpx.AsyncClient() as anonymous:
+        refused = await anonymous.get(files_url, params={"path": "out/x.bin"})
+    assert refused.status_code == 401
 
 
 async def test_http_refuses_a_missing_or_wrong_token(http_server):

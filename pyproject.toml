@@ -30,6 +30,7 @@ dev = [
 kt-sandbox = "kt_sandbox.cli:main"
 kt-sandbox-mcp = "kt_sandbox.server.cli:main"
 kt-sandbox-about = "kt_sandbox.server.about.cli:main"
+kt-sandbox-file = "kt_sandbox.server.files:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["kt_sandbox"]

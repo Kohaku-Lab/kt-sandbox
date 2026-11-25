@@ -3,6 +3,7 @@
 import argparse
 import asyncio
 import hmac
+import logging
 import os
 import sys
 from collections.abc import Sequence
@@ -101,6 +102,9 @@ def main(argv: Sequence[str] | None = None) -> int:
         return 2
     server = SandboxServer(settings, about_file=publish(settings))
     app = server.http_app(args.host)
+    logging.basicConfig(
+        level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s %(message)s"
+    )
     uvicorn.run(
         BearerAuth(app, token) if token else app, host=args.host, port=args.port
     )

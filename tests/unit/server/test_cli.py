@@ -60,16 +60,16 @@ class TestNameFlag:
     def test_a_hand_started_server_can_be_named_on_the_command_line(self, served):
         assert main(["--name", " lab "]) == 0
         text = served[0].server.instructions
-        assert "the sandbox lab" in text and "`sandbox:lab/<path>`" in text
+        assert "the sandbox lab:" in text and "sandbox:" not in text
 
     def test_the_flag_overrides_the_environment(self, served, monkeypatch):
         monkeypatch.setenv("KT_SANDBOX_NAME", "env-name")
         assert main(["--name", "flag-name"]) == 0
-        assert "sandbox:flag-name/" in served[0].server.instructions
+        assert "the sandbox flag-name:" in served[0].server.instructions
 
-    def test_without_a_name_there_is_no_handle(self, served):
+    def test_without_a_name_the_sandbox_is_unnamed(self, served):
         assert main([]) == 0
-        assert "`sandbox:" not in served[0].server.instructions
+        assert "inside a sandbox:" in served[0].server.instructions
 
 
 class TestAboutFile:
