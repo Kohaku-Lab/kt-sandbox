@@ -6,12 +6,14 @@ import hmac
 import os
 import sys
 from collections.abc import Sequence
+from dataclasses import replace
 
 import uvicorn
 from starlette.responses import PlainTextResponse
 from starlette.types import ASGIApp, Receive, Scope, Send
 
 from kt_sandbox import __version__
+from kt_sandbox.server.about.document import publish
 from kt_sandbox.server.app import SandboxServer
 from kt_sandbox.server.settings import ServerSettings
 
@@ -54,6 +56,10 @@ def build_parser() -> argparse.ArgumentParser:
         default="stdio",
         help="stdio (default) for `docker exec -i`, http for a published port",
     )
+    parser.add_argument(
+        "--name",
+        help="the sandbox's name for the instructions (default: $KT_SANDBOX_NAME)",
+    )
     parser.add_argument("--host", default="0.0.0.0", help="http: address to bind")
     parser.add_argument(
         "--port", type=int, default=DEFAULT_PORT, help="http: port to bind"
@@ -79,8 +85,10 @@ def main(argv: Sequence[str] | None = None) -> int:
     except ValueError as exc:
         print(f"kt-sandbox-mcp: {exc}", file=sys.stderr)
         return 2
-    server = SandboxServer(settings)
+    if args.name and args.name.strip():
+        settings = replace(settings, name=args.name.strip())
     if args.transport == "stdio":
+        server = SandboxServer(settings, about_file=publish(settings))
         asyncio.run(server.run_stdio())
         return 0
     token = os.environ.get(args.token_env, "")
@@ -91,6 +99,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             file=sys.stderr,
         )
         return 2
+    server = SandboxServer(settings, about_file=publish(settings))
     app = server.http_app(args.host)
     uvicorn.run(
         BearerAuth(app, token) if token else app, host=args.host, port=args.port

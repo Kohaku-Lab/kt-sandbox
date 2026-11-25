@@ -79,8 +79,8 @@ def kt_schemas() -> dict[str, tuple[str, dict]]:
     }
 
 
-async def journey(session: ClientSession, workdir) -> None:
-    """Every tool, success and failure, through one MCP session."""
+async def journey(session: ClientSession, workdir) -> str:
+    """Every tool, success and failure, through one MCP session; return the instructions."""
     init = await session.initialize()
     assert init.instructions.startswith("You work inside the sandbox lab:")
     assert "`sandbox:lab/<path>`" in init.instructions
@@ -172,22 +172,44 @@ async def journey(session: ClientSession, workdir) -> None:
 
     missing = await call("read", path="nope.txt")
     assert missing.isError and text_of(missing) == "File not found: nope.txt"
+    return init.instructions
 
 
 async def test_stdio_journey(tmp_path):
     workdir = tmp_path / "work"
     workdir.mkdir()
+    home = tmp_path / "home"
     params = StdioServerParameters(
         command=sys.executable,
         args=["-m", "kt_sandbox.server"],
-        env=server_env(workdir),
+        env=server_env(
+            workdir,
+            HOME=str(home),
+            KT_SANDBOX_LEVEL="strict",
+            KT_SANDBOX_NETWORK="none",
+            KT_SANDBOX_ALLOW="",
+            KT_SANDBOX_SUDO="0",
+        ),
     )
     errors = tmp_path / "server-stderr.txt"
+    about = home / ".kt-sandbox" / "about.md"
     with errors.open("w", encoding="utf-8") as errlog:
         async with stdio_client(params, errlog=errlog) as (read, write):
             async with ClientSession(read, write) as session:
-                await journey(session, workdir)
+                instructions = await journey(session, workdir)
+                # The about document was written before the first request.
+                written = about.read_text(encoding="utf-8")
+                fresh = await session.call_tool(
+                    "bash",
+                    {"command": f"{sys.executable} -m kt_sandbox.server.about"},
+                )
     assert "Traceback" not in errors.read_text(encoding="utf-8")
+    assert "Level strict: the sandbox is offline" in instructions
+    assert "Each command runs up to 3 s." in instructions
+    assert f"{about} (written when this server started)" in instructions
+    assert written.startswith("# About the sandbox lab\n")
+    assert "- Level: strict" in written and "- One command: up to 3 s" in written
+    assert not fresh.isError and "- Level: strict" in text_of(fresh)
 
 
 def free_port() -> int:
@@ -239,6 +261,7 @@ def http_server(tmp_path):
 
 
 async def test_http_journey_with_the_bearer_token(http_server, tmp_path):
+    """A server started by hand (no level values) gives the short instructions."""
     headers = {"Authorization": f"Bearer {TOKEN}"}
     async with httpx.AsyncClient(headers=headers) as http_client:
         async with streamable_http_client(http_server, http_client=http_client) as (
@@ -247,7 +270,8 @@ async def test_http_journey_with_the_bearer_token(http_server, tmp_path):
             _,
         ):
             async with ClientSession(read, write) as session:
-                await journey(session, tmp_path)
+                instructions = await journey(session, tmp_path)
+    assert "\n" not in instructions and "kt-sandbox-about" not in instructions
 
 
 async def test_http_refuses_a_missing_or_wrong_token(http_server):
