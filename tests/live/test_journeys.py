@@ -46,6 +46,24 @@ async def sh(name: str, command: str, **arguments) -> str:
     return await mcp_call(name, "bash", command=command, **arguments)
 
 
+async def instructions_of(session, init) -> str:
+    return init.instructions
+
+
+def exec_about(manager, name: str) -> str:
+    """Run ``kt-sandbox-about`` in sandbox ``name`` through ``docker exec``; return its output."""
+    container = manager.client.containers.get(container_name(name))
+    code, output = container.exec_run(["kt-sandbox-about"])
+    assert code == 0, output
+    return output.decode()
+
+
+def assert_lines(text: str, *lines: str) -> None:
+    present = text.splitlines()
+    for line in lines:
+        assert line in present, f"{line!r} not in:\n{text}"
+
+
 async def py(name: str, code: str, **arguments) -> str:
     """Run a Python snippet through ``bash`` with a here-document."""
     return await sh(name, f"python3 - <<'PY'\n{code}\nPY", **arguments)
@@ -81,6 +99,13 @@ async def test_set_up_open_save_and_reopen_strict(
     assert listed == TOOLS and own_name == f"{lab}\n"
     assert f"inside the sandbox {lab}:" in instructions
     assert f"`sandbox:{lab}/<path>`" in instructions
+    assert instructions.splitlines()[1:] == [
+        "Level open: the network is open. `sudo` works without a password. "
+        "Each command runs up to 300 s.",
+        "Programs, Python packages and live usage: "
+        "/home/sandbox/.kt-sandbox/about.md (written when this server started), "
+        "or run `kt-sandbox-about` for a fresh view.",
+    ]
     assert main(["mcp", lab, "--register"]) == 0
     assert f"updated sandbox-{lab}" in capsys.readouterr().out
 
@@ -90,6 +115,38 @@ async def test_set_up_open_save_and_reopen_strict(
         "id -un; sudo -n touch /usr/local/marker && echo sudo-ok; echo mine > /work/notes.txt; curl -sS -m 15 -o /dev/null -w 'net:%{http_code}' https://pypi.org",
     )
     assert "sandbox" in out and "sudo-ok" in out and "net:200" in out
+
+    # The sandbox describes itself: its level, live usage and image tiers.
+    lab_about = exec_about(manager, lab)
+    assert_lines(
+        lab_about,
+        "- Level: open",
+        "- Network: open",
+        "- sudo: works without a password",
+        "- User: sandbox",
+        "- One command: up to 300 s",
+        "- CPUs: 2",
+        "- Tiers: slim",
+        "## Notes: slim",
+    )
+    assert " used of 2 GiB" in lab_about and " of 512)" in lab_about
+    assert "- Found: python3, pip, curl, sudo" in lab_about
+
+    # The file is written when a server starts; the command reads the sandbox now.
+    async def install_and_compare(session, _):
+        result = await session.call_tool(
+            "bash",
+            {
+                "command": "pip install -q cowsay >/dev/null 2>&1; "
+                "echo fresh:$(kt-sandbox-about | grep -c cowsay); "
+                "echo file:$(grep -c cowsay ~/.kt-sandbox/about.md)"
+            },
+        )
+        return result.content[0].text
+
+    compared = await mcp_session(stdio_params(lab), install_and_compare)
+    assert compared.split() == ["fresh:1", "file:0"]
+    assert "cowsay" in await sh(lab, "cat ~/.kt-sandbox/about.md")
 
     # Stop and start keep the state.
     manager.down(lab)
@@ -112,6 +169,36 @@ async def test_set_up_open_save_and_reopen_strict(
         "cat /work/notes.txt; ls /usr/local/marker; ls -l /work/notes.txt | cut -d' ' -f3",
     )
     assert "mine" in state and "/usr/local/marker" in state and "sandbox" in state
+
+    # The image carries the open level's values; the strict level replaces them.
+    policy = await sh(
+        bot, "env | grep -E '^KT_SANDBOX_(LEVEL|NETWORK|ALLOW|SUDO)=' | sort"
+    )
+    assert policy.split() == [
+        "KT_SANDBOX_ALLOW=",
+        "KT_SANDBOX_LEVEL=strict",
+        "KT_SANDBOX_NETWORK=none",
+        "KT_SANDBOX_SUDO=0",
+    ]
+    bot_instructions = await mcp_session(stdio_params(bot), instructions_of)
+    assert bot_instructions.splitlines()[1] == (
+        "Level strict: the sandbox is offline; work with the files and packages "
+        "already here. Commands run as the user `sandbox`, without sudo. Each "
+        "command runs up to 15 s."
+    )
+    written = await sh(bot, "cat ~/.kt-sandbox/about.md")
+    assert_lines(written, "- Level: strict", "- Network: none; the sandbox is offline")
+    assert "cowsay" in written and "- Level: open" not in written
+    bot_about = exec_about(manager, bot)
+    assert_lines(
+        bot_about,
+        "- Level: strict",
+        "- sudo: off",
+        "- One command: up to 15 s",
+        "- CPUs: 0.5",
+        "- Tiers: slim",
+    )
+    assert " used of 256 MiB" in bot_about and " of 64)" in bot_about
 
     locked = await sh(
         bot,
@@ -239,6 +326,28 @@ async def test_allowlist_level_reaches_only_its_hosts_and_isolates_sandboxes(
         other, level_name="standard", image=image, overrides={"allow": ["example.org"]}
     )
 
+    # Each sandbox is told its own hosts; its proxy credential is never shown.
+    told = await mcp_session(stdio_params(std), instructions_of)
+    assert told.splitlines()[1].startswith(
+        "Level standard: the network reaches only pypi.org, files.pythonhosted.org, "
+        "github.com, raw.githubusercontent.com, through a proxy already set up."
+    )
+    told_other = await mcp_session(stdio_params(other), instructions_of)
+    assert "reaches only example.org, through" in told_other
+    env = manager.client.containers.get(container_name(std)).attrs["Config"]["Env"]
+    secret = next(
+        e.split("=", 1)[1] for e in env if e.startswith("KT_SANDBOX_EGRESS_SECRET=")
+    )
+    std_about = exec_about(manager, std)
+    assert_lines(
+        std_about,
+        "- Network: only pypi.org, files.pythonhosted.org, github.com, "
+        "raw.githubusercontent.com, through the proxy set in HTTP_PROXY and HTTPS_PROXY",
+    )
+    assert len(secret) >= 20 and secret not in std_about
+    assert "kt-sandbox-egress" not in std_about
+    assert secret not in await sh(std, "cat ~/.kt-sandbox/about.md")
+
     reach = await sh(
         std,
         "curl -sS -m 15 -o /dev/null -w 'pypi:%{http_code}\\n' https://pypi.org/simple/ 2>&1 | tail -1",
@@ -266,7 +375,7 @@ async def test_allowlist_level_reaches_only_its_hosts_and_isolates_sandboxes(
 
     pip = await sh(
         std,
-        "pip install --user -q cowsay 2>&1 | tail -1; python -c 'import cowsay; print(\"installed\")'",
+        "pip install -q cowsay 2>&1 | tail -1; python -c 'import cowsay; print(\"installed\")'",
         timeout=60,
     )
     assert "installed" in pip
