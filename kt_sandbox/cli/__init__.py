@@ -20,6 +20,7 @@ from kt_sandbox.cli import (
     rm,
     save,
     up,
+    upgrade,
 )
 from kt_sandbox.errors import SandboxError
 
@@ -38,6 +39,7 @@ COMMANDS = (
     doctor,
     build,
     proxy,
+    upgrade,
 )
 
 

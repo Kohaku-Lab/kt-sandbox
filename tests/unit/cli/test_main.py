@@ -24,6 +24,7 @@ NAMES = (
     "doctor",
     "build",
     "proxy",
+    "upgrade",
 )
 
 

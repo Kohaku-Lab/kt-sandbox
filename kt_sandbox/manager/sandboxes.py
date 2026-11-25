@@ -11,8 +11,10 @@ from kt_sandbox.errors import ManagerError
 from kt_sandbox.levels.presets import DEFAULT_LEVEL, build_level
 from kt_sandbox.manager import archive
 from kt_sandbox.manager.docker import containers, images, network
+from kt_sandbox.manager.upgrade import Upgraded, upgrade_container
 from kt_sandbox.manager.options import (
     DEFAULT_IMAGE,
+    LABEL_NAME,
     LABEL_NET,
     SANDBOX_USER,
     MCP_PORT,
@@ -144,6 +146,23 @@ class Manager:
     def import_images(self, path: Path) -> list[archive.LoadedImage]:
         """Load the images in the tarball ``path``."""
         return images.load(self.client, path)
+
+    def upgrade(self, name: str) -> Upgraded:
+        """Put the installed kt-sandbox package and commands into sandbox ``name``."""
+        return upgrade_container(containers.require(self.client, name))
+
+    def upgrade_all(self) -> list[tuple[str, Upgraded | ManagerError]]:
+        """Upgrade every sandbox; return each name with its result or its refusal."""
+        found = self.client.containers.list(all=True, filters={"label": LABEL_NAME})
+        done: list[tuple[str, Upgraded | ManagerError]] = []
+        for container in sorted(found, key=lambda c: c.labels.get(LABEL_NAME, "")):
+            try:
+                done.append(
+                    (container.labels[LABEL_NAME], upgrade_container(container))
+                )
+            except ManagerError as exc:
+                done.append((container.labels[LABEL_NAME], exc))
+        return done
 
     def _running(self, name: str):
         container = containers.require(self.client, name)
