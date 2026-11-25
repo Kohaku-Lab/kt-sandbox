@@ -57,6 +57,29 @@ kt-sandbox mcp bot --register          # add it to KT's MCP servers as sandbox-b
 
 `kt-sandbox ls`, `down`, `rm`, `images`, `export`, `import`, `levels` and
 `doctor` do what they say; see [docs/usage.md](docs/usage.md).
+`kt-sandbox upgrade NAME` puts the installed kt-sandbox into an existing sandbox.
+A sandbox file can be fetched with `GET /mcp/files?path=...` on the HTTP server,
+or `kt-sandbox-file PATH` inside the sandbox; see [docs/mcp.md](docs/mcp.md).
+
+## Sandbox files in any KohakuTerrarium tool
+
+The repository is also a KohakuTerrarium package with one plugin,
+`sandbox.files`. With it, any tool argument that takes a file to read accepts
+a file inside a sandbox, local or on another machine, as
+`sandbox:<server>/<path>`:
+
+```bash
+kt install https://github.com/Kohaku-Lab/kt-sandbox
+```
+
+```yaml
+plugins:
+  - name: sandbox.files
+    options:
+      servers: [sandbox-lab]
+```
+
+See [docs/plugin.md](docs/plugin.md).
 
 ## Layout and tests
 
@@ -85,6 +108,7 @@ KT_SANDBOX_LIVE=1 pytest tests/live    # needs Docker; builds the image first
 - [Architecture](docs/architecture.md): components, state and access
 - [Security](docs/security.md): what each level enforces and what it does not
 - [MCP tools](docs/mcp.md): the tools a sandbox offers and how to connect
+- [Plugin](docs/plugin.md): `sandbox:<server>/<path>` files for any KohakuTerrarium tool
 
 ## License
 

@@ -13,11 +13,13 @@ kt-sandbox ships two things: a **sandbox image** with an MCP server in it, and a
 | Part | Job |
 |---|---|
 | `server/` | The MCP server that runs inside a sandbox. Knows nothing of Docker. Limits and the level's policy come from environment variables. |
+| `server/files.py` | Hands one sandbox file to a caller outside: the `/mcp/files` HTTP route and `kt-sandbox-file`. |
 | `server/about/` | The about document (`kt-sandbox-about`): policy, live usage from the cgroup, tiers, programs and Python packages of the running sandbox. |
 | `levels/` | The `Level` model and the presets `open`, `standard`, `strict`. |
 | `manager/options.py` | Turns a level into container settings: limits, network, sudo, runtime, labels, environment. Pure, tested without Docker. |
 | `manager/docker/` | The Docker calls: containers, images, and the allowlist network plumbing. |
-| `manager/sandboxes.py` | The operations a person runs: up, down, rm, ls, save, export, import, connect. |
+| `manager/sandboxes.py` | The operations a person runs: up, down, rm, ls, save, export, import, connect, upgrade. |
+| `manager/upgrade.py` | Puts the installed `kt_sandbox` package and the in-image commands into an existing sandbox through Docker's archive API. |
 | `manager/builder.py` + `manager/image/` | Assembles a build context from the packaged Dockerfile, the tier files and the installed `kt_sandbox` package, and runs Docker. |
 | `manager/kt_config.py` | Adds a sandbox's entry to KohakuTerrarium's global MCP server list (`kt-sandbox mcp NAME --register`), without importing KohakuTerrarium. |
 | `files.py` | Reads one file out of a sandbox from a `sandbox:<name>/<path>` reference, through Docker's archive API. |

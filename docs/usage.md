@@ -17,12 +17,26 @@
 | `kt-sandbox levels` | show what each level sets |
 | `kt-sandbox build [-t TAG] [--extras ...]` | build the sandbox image |
 | `kt-sandbox doctor` | check Docker, its runtimes and the default image |
+| `kt-sandbox upgrade NAME \| --all` | put the installed kt-sandbox server and commands into an existing sandbox |
 
 `up` options override a level: `--network`, `--allow HOST` (repeatable),
 `--cpus`, `--memory`, `--pids`, `--wall SECONDS`, `--runtime NAME`,
 `--read-only`, `--mount SRC:DST[:ro]`, `--env KEY=VALUE`, `--publish PORT`.
 `--runtime NAME` passes a container runtime to Docker: any runtime installed in
 your Docker engine (`kt-sandbox doctor` lists them).
+
+`upgrade` replaces `/opt/kt-sandbox/kt_sandbox` inside the sandbox with the
+installed package (old files are removed) and rewrites `kt-sandbox-mcp`,
+`kt-sandbox`, `kt-sandbox-about` and `kt-sandbox-file` in `/usr/local/bin`. It
+writes through Docker's archive API as root, so the sandbox may be running or
+stopped and is not started. In a running sandbox it first checks that the
+image has the server's dependencies (KohakuTerrarium, mcp, starlette, uvicorn)
+and refuses an image without them; afterwards it compiles the package. A
+read-only sandbox and a container kt-sandbox did not make are refused. A
+server already running keeps the old code until it restarts: stdio servers
+restart on the next connection; stop an HTTP server with
+`docker exec kt-sandbox-NAME pkill -f 'kt-sandbox-mcp|kt_sandbox.server'` and start it again.
+`--all` upgrades every sandbox and fails if any was refused.
 
 A sandbox keeps the level it was created with: `up NAME` without `--level` starts
 a stopped sandbox at that level, and naming another level is refused. To use a

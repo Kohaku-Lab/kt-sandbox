@@ -74,15 +74,13 @@ proxy's credential.
 The server sends instructions that a client shows its model. They say that the
 tools run inside the sandbox, in the work folder, and that files and packages
 stay between calls. With a name set (`KT_SANDBOX_NAME`, or `--name` on a server
-started by hand), they add that a file can be handed to a tool that takes a file
-or media argument by writing it as `sandbox:<name>/<path>`; a tool without sandbox
-support says so. A server without a name gives no such handle.
+started by hand), they name the sandbox.
 
 When the manager opened the sandbox, two more lines follow: the facts of its
 level, and where to read about the rest. For a sandbox `bot` at `strict`:
 
 ```
-You work inside the sandbox bot: these tools run there, in /work, and files and packages stay between calls. A file here can be handed to a tool that takes a file or media argument by writing it as `sandbox:bot/<path>`; a tool without sandbox support says so.
+You work inside the sandbox bot: these tools run there, in /work, and files and packages stay between calls.
 Level strict: the sandbox is offline; work with the files and packages already here. Commands run as the user `sandbox`, without sudo. Each command runs up to 15 s.
 Programs, Python packages and live usage: /home/sandbox/.kt-sandbox/about.md (written when this server started), or run `kt-sandbox-about` for a fresh view.
 ```
@@ -131,7 +129,47 @@ kt-sandbox-mcp [--transport stdio|http] [--host 0.0.0.0] [--port 8765]
 ```
 
 Over HTTP the endpoint is `/mcp`. Bound to a loopback address, the server
-accepts only loopback `Host` and `Origin` headers.
+accepts only loopback `Host` and `Origin` headers. With `--transport http` the
+server logs each file request (path and status, never headers) to standard
+error.
+
+## Reading a file out of the sandbox
+
+Both ways follow one rule: a relative path is under the work folder
+(`KT_SANDBOX_WORKDIR`, `/work` by default), an absolute path is used as given;
+the last component must be a regular file, so a symbolic link, a folder or a
+special file is refused (a link earlier in the path is followed); a file over
+the byte limit is refused before any byte is sent. The limit is 64 MiB, and a
+larger requested limit is lowered to it.
+
+Over HTTP, on the same port and behind the same bearer token as `/mcp`:
+
+```
+GET /mcp/files?path=out/chart.png&max_bytes=10000000
+Authorization: Bearer <token>
+```
+
+| Status | Means |
+|---|---|
+| 200 | the file's bytes, `Content-Type: application/octet-stream`, with `Content-Length`, `X-KT-Sandbox-Size` and `X-KT-Sandbox-Mtime` (seconds since the epoch, a float) |
+| 400 | `path` missing or empty, or `max_bytes` not a whole number of at least 1 |
+| 401 | no token or the wrong one |
+| 403 | the server's user cannot read the file |
+| 404 | the file does not exist |
+| 413 | the file is over the limit; the message gives its size and the limit |
+| 422 | a folder, a symbolic link or a special file |
+
+Every error is JSON, `{"error": "<message>"}`.
+
+Inside the sandbox, for clients that reach it over stdio (`docker exec`):
+
+```
+kt-sandbox-file PATH [--max-bytes N]   # or python -m kt_sandbox.server.files
+```
+
+writes the file's bytes to standard output and exits 0. On a refusal it prints
+the reason on standard error and exits 3 (not found), 4 (not a regular file),
+5 (too large), 6 (cannot be read) or 2 (usage).
 
 ```
 kt-sandbox-about        # or python -m kt_sandbox.server.about

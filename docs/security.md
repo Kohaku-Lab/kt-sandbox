@@ -61,6 +61,10 @@ sandbox running; swap is off.
   are reachable (never the egress proxy or other containers), only regular
   files are read, and the caller sets the size limit. Which sandboxes a caller
   may read from is the caller's decision.
+- **`GET /mcp/files` reads any regular file the server's user can read,**
+  including absolute paths outside `/work`, for whoever holds the HTTP token.
+  The token already allows running commands, so the route adds no access; a
+  symbolic link as the last component is refused.
 - **Saved images keep what was in the sandbox**, including secrets you typed or
   stored. Check before sharing an image.
 - **A sandbox can exhaust its own process limit**, which blocks new tool calls
