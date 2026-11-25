@@ -1,0 +1,57 @@
+# The sandbox image, layered by tier. Build it with `kt-sandbox build`.
+#
+# `slim` is always installed; EXTRAS adds the tiers named in apt/ and pip/.
+# The builder copies the installed kt_sandbox package into kt_sandbox/; it runs
+# from /opt/kt-sandbox with only the packages in the runtime-requirements files.
+ARG BASE=python:3.12-slim
+FROM ${BASE}
+
+ARG EXTRAS=""
+ARG EXTRA_APT=""
+ARG EXTRA_PIP=""
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    MPLBACKEND=Agg
+
+COPY apt /tmp/tiers/apt
+COPY pip /tmp/tiers/pip
+
+RUN set -eu; \
+    packages="$(for tier in slim $(echo "$EXTRAS" | tr ',' ' '); do cat "/tmp/tiers/apt/$tier.txt" 2>/dev/null || true; done) $EXTRA_APT"; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends $packages; \
+    rm -rf /var/lib/apt/lists/*
+
+RUN set -eu; \
+    for tier in slim $(echo "$EXTRAS" | tr ',' ' '); do \
+        if grep -qv '^#' "/tmp/tiers/pip/$tier.txt" 2>/dev/null; then pip install -r "/tmp/tiers/pip/$tier.txt"; fi; \
+    done; \
+    if [ -n "$EXTRA_PIP" ]; then pip install $EXTRA_PIP; fi
+
+RUN useradd --create-home --shell /bin/bash --uid 1000 sandbox \
+    && echo 'sandbox ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/sandbox \
+    && chmod 0440 /etc/sudoers.d/sandbox \
+    && mkdir -p /work \
+    && chown sandbox:sandbox /work
+
+# KohakuTerrarium's web frontend (web_dist) is never served from a sandbox.
+COPY runtime-requirements.txt runtime-requirements-no-deps.txt /tmp/
+RUN set -eu; \
+    pip install -r /tmp/runtime-requirements.txt; \
+    pip install --no-deps -r /tmp/runtime-requirements-no-deps.txt; \
+    rm -rf "$(python -c 'import sysconfig; print(sysconfig.get_paths()["purelib"])')/kohakuterrarium/web_dist"; \
+    rm -rf /tmp/runtime-requirements.txt /tmp/runtime-requirements-no-deps.txt /tmp/tiers
+
+COPY kt_sandbox /opt/kt-sandbox/kt_sandbox
+ENV PYTHONPATH=/opt/kt-sandbox
+RUN set -eu; \
+    python -m compileall -q /opt/kt-sandbox; \
+    printf '#!/bin/sh\nexec python -m kt_sandbox.server "$@"\n' > /usr/local/bin/kt-sandbox-mcp; \
+    printf '#!/bin/sh\nexec python -m kt_sandbox "$@"\n' > /usr/local/bin/kt-sandbox; \
+    chmod 0755 /usr/local/bin/kt-sandbox-mcp /usr/local/bin/kt-sandbox
+
+USER sandbox
+WORKDIR /work
+CMD ["sleep", "infinity"]

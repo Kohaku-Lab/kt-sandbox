@@ -1,0 +1,6 @@
+ca-certificates
+curl
+fonts-noto-cjk
+less
+procps
+sudo

@@ -1,0 +1,7 @@
+build-essential
+git
+jq
+nodejs
+npm
+ripgrep
+sqlite3

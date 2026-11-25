@@ -1,0 +1,2 @@
+# Installed with --no-deps; its dependencies are listed in runtime-requirements.txt.
+kohakuterrarium==2.2.3

@@ -1,0 +1,13 @@
+# Everything the sandbox's MCP server needs at run time, in two files:
+#   runtime-requirements.txt  (this file) installed normally;
+#   runtime-requirements-no-deps.txt  installed with --no-deps.
+# The server runs KohakuTerrarium's own tool classes. KohakuTerrarium is
+# installed without its dependencies (an LLM client stack the sandbox never
+# uses); the lines below are the packages its seven tools import.
+mcp>=1.28.1,<2
+aiofiles>=25.1.0
+jinja2>=3.1.0
+kohakuvault>=1.1.0,<2
+pathspec>=1.1.1,<2
+Pillow>=11.0.0
+pyyaml>=6.0.0
