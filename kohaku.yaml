@@ -1,0 +1,12 @@
+name: kt-sandbox
+version: "0.1.1"
+framework: ">=2.2.4,<3.0.0"
+description: >-
+  Files inside a kt-sandbox for any KohakuTerrarium tool: name them as
+  sandbox:<server>/<path> and the sandbox.files plugin fetches a local copy
+  before the tool runs.
+
+plugins:
+  - name: sandbox.files
+    module: kt_sandbox.kt_plugin.plugin
+    class: SandboxFilesPlugin
