@@ -3,6 +3,7 @@
 import contextlib
 import weakref
 from collections.abc import AsyncIterator
+from pathlib import Path
 from typing import Any
 
 from kohakuterrarium.utils.file.guard import FileReadState
@@ -16,6 +17,7 @@ from starlette.routing import Route
 from starlette.types import Receive, Scope, Send
 
 from kt_sandbox import __version__
+from kt_sandbox.server.about.document import COMMAND
 from kt_sandbox.server.settings import ServerSettings
 from kt_sandbox.server.tools.catalog import Toolbox
 
@@ -24,19 +26,71 @@ HTTP_PATH = "/mcp"
 LOCAL_HOSTS = ("127.0.0.1", "localhost", "::1")
 
 
-def instructions(settings: ServerSettings) -> str:
-    """The text a client shows its model about this server."""
-    if settings.name:
+def _policy(settings: ServerSettings) -> str:
+    sentences = []
+    match settings.network:
+        case "none":
+            sentences.append(
+                "The sandbox is offline; work with the files and packages already here."
+            )
+        case "allowlist":
+            sentences.append(
+                "The network reaches only "
+                f"{', '.join(settings.allow) or 'the allowed hosts'}, through a "
+                "proxy already set up."
+            )
+        case "open":
+            sentences.append("The network is open.")
+    if settings.sudo:
+        sentences.append("`sudo` works without a password.")
+    elif settings.sudo is False:
+        install = (
+            "; `pip install` installs into its home"
+            if settings.network in ("allowlist", "open")
+            else ""
+        )
+        sentences.append(f"Commands run as the user `sandbox`, without sudo{install}.")
+    sentences.append(f"Each command runs up to {settings.wall_s} s.")
+    text = " ".join(sentences)
+    if settings.level:
+        return f"Level {settings.level}: {text[0].lower()}{text[1:]}"
+    return text
+
+
+def _about(about_file: Path | None) -> str:
+    if about_file is None:
         return (
-            f"You work inside the sandbox {settings.name}: these tools run there, "
-            f"in {settings.workdir}, and files and packages stay between calls. A "
-            "file here can be passed to any tool that takes a file or media argument "
-            f"as `sandbox:{settings.name}/<path>`."
+            f"Run `{COMMAND}` for the programs, Python packages and live usage of "
+            "this sandbox."
         )
     return (
-        f"You work inside a sandbox: these tools run there, in {settings.workdir}, "
-        "and files and packages stay between calls."
+        f"Programs, Python packages and live usage: {about_file} (written when this "
+        f"server started), or run `{COMMAND}` for a fresh view."
     )
+
+
+def instructions(settings: ServerSettings, about_file: Path | None = None) -> str:
+    """The text a client shows its model about this server.
+
+    With the level's policy from the manager it adds the network, sudo and time
+    limit of this sandbox and where to read the about document.
+    """
+    if settings.name:
+        text = (
+            f"You work inside the sandbox {settings.name}: these tools run there, "
+            f"in {settings.workdir}, and files and packages stay between calls. A "
+            "file here can be handed to a tool that takes a file or media argument by "
+            f"writing it as `sandbox:{settings.name}/<path>`; a tool without sandbox "
+            "support says so."
+        )
+    else:
+        text = (
+            f"You work inside a sandbox: these tools run there, in {settings.workdir}, "
+            "and files and packages stay between calls."
+        )
+    if not settings.has_policy:
+        return text
+    return "\n".join((text, _policy(settings), _about(about_file)))
 
 
 class _Endpoint:
@@ -56,14 +110,16 @@ class SandboxServer:
     read-before-write rule applies to what that client has read.
     """
 
-    def __init__(self, settings: ServerSettings):
+    def __init__(self, settings: ServerSettings, about_file: Path | None = None):
         self.settings = settings
         self.toolbox = Toolbox(settings)
         self._read_states: weakref.WeakKeyDictionary[Any, FileReadState] = (
             weakref.WeakKeyDictionary()
         )
         self.server: Server = Server(
-            SERVER_NAME, version=__version__, instructions=instructions(settings)
+            SERVER_NAME,
+            version=__version__,
+            instructions=instructions(settings, about_file),
         )
         self.server.list_tools()(self._list_tools)
         self.server.call_tool(validate_input=True)(self._call_tool)

@@ -27,6 +27,12 @@ NETWORK_PREFIX = "kt-sandbox-net-"
 EGRESS_NAME = "kt-sandbox-egress"
 EGRESS_PORT = 3128
 PROXY_VARS = ("HTTP_PROXY", "HTTPS_PROXY", "http_proxy", "https_proxy")
+POLICY_VARS = (
+    "KT_SANDBOX_LEVEL",
+    "KT_SANDBOX_NETWORK",
+    "KT_SANDBOX_ALLOW",
+    "KT_SANDBOX_SUDO",
+)
 
 _NAME = re.compile(r"^[a-z0-9][a-z0-9_.-]{0,39}$")
 
@@ -88,6 +94,20 @@ def proxy_environment(level: Level, name: str = "", secret: str = "") -> dict[st
     return {var: url for var in PROXY_VARS}
 
 
+def policy_environment(level_name: str, level: Level) -> dict[str, str]:
+    """The level's policy for the server's instructions and the about document.
+
+    Every level sets every variable, so values a saved image carries from the
+    level it was saved at are replaced.
+    """
+    return dict(
+        zip(
+            POLICY_VARS,
+            (level_name, level.network, ",".join(level.allow), str(int(level.sudo))),
+        )
+    )
+
+
 def container_options(
     name: str,
     level_name: str,
@@ -128,6 +148,7 @@ def container_options(
             "KT_SANDBOX_WORKDIR": WORKDIR,
             "KT_SANDBOX_WALL_S": str(level.limits.wall_s),
             "KT_SANDBOX_OUTPUT_BYTES": str(level.limits.output_bytes),
+            **policy_environment(level_name, level),
             **proxy_environment(level, name, egress_secret),
             SECRET_ENV: egress_secret,
             **(env or {}),

@@ -131,6 +131,56 @@ class TestContainerOptions:
             container_options("Bad Name", "strict", build_level("strict"), image="i")
 
 
+class TestPolicyEnvironment:
+    def test_each_level_tells_the_server_its_policy(self):
+        assert {
+            level: {key: opts(level)["environment"][key] for key in options.POLICY_VARS}
+            for level in ("open", "standard", "strict")
+        } == {
+            "open": {
+                "KT_SANDBOX_LEVEL": "open",
+                "KT_SANDBOX_NETWORK": "open",
+                "KT_SANDBOX_ALLOW": "",
+                "KT_SANDBOX_SUDO": "1",
+            },
+            "standard": {
+                "KT_SANDBOX_LEVEL": "standard",
+                "KT_SANDBOX_NETWORK": "allowlist",
+                "KT_SANDBOX_ALLOW": "pypi.org,files.pythonhosted.org,github.com,raw.githubusercontent.com",
+                "KT_SANDBOX_SUDO": "0",
+            },
+            "strict": {
+                "KT_SANDBOX_LEVEL": "strict",
+                "KT_SANDBOX_NETWORK": "none",
+                "KT_SANDBOX_ALLOW": "",
+                "KT_SANDBOX_SUDO": "0",
+            },
+        }
+
+    def test_every_level_sets_every_value_so_a_saved_image_cannot_keep_old_ones(self):
+        keys = {
+            level: set(opts(level)["environment"])
+            for level in ("open", "standard", "strict")
+        }
+        assert keys["open"] == keys["standard"] == keys["strict"]
+        assert set(options.POLICY_VARS) <= keys["strict"]
+
+    def test_overrides_reach_the_server(self):
+        level = build_level("standard", {"network": "open", "sudo": True})
+        env = container_options("lab", "standard", level, image="i")["environment"]
+        assert (env["KT_SANDBOX_NETWORK"], env["KT_SANDBOX_ALLOW"]) == ("open", "")
+        assert env["KT_SANDBOX_SUDO"] == "1" and env["KT_SANDBOX_LEVEL"] == "standard"
+        hosts = build_level("standard", {"allow": ["example.org", "x.io"]})
+        env = container_options(
+            "lab", "standard", hosts, image="i", egress_secret="s3cret"
+        )["environment"]
+        assert env["KT_SANDBOX_ALLOW"] == "example.org,x.io"
+
+    def test_the_egress_credential_is_in_no_policy_value(self):
+        env = opts("standard", egress_secret="tok-123456")["environment"]
+        assert all("tok-123456" not in env[key] for key in options.POLICY_VARS)
+
+
 def test_proxy_environment_covers_both_cases():
     assert set(proxy_environment(build_level("open"))) == set(options.PROXY_VARS)
 
