@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="830" height="482" viewBox="0 0 830 482" role="img">
+<title>kt-sandbox: clients, a sandbox container with an MCP server inside, the egress proxy and the manager</title>
+<defs><marker id="hb" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#0969da"/></marker><marker id="ht" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#1b7c83"/></marker><marker id="ho" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#bc4c00"/></marker><marker id="hy" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#9a6700"/></marker><marker id="hg" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#818b98"/></marker></defs>
+<rect width="830" height="482" fill="#ffffff"/>
+<rect x="16" y="10" width="220" height="300" rx="4" fill="#f6f8fa" stroke="#d1d9e0" stroke-width="1"/>
+<text x="30" y="32" font-family="-apple-system, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="14" font-weight="600" fill="#1f2328" text-anchor="start" xml:space="preserve">who talks to it</text>
+<rect x="32" y="48" width="188" height="96" rx="5" fill="#a5d4ff" stroke="#0969da" stroke-width="1"/>
+<text x="126.0" y="82.0" font-family="-apple-system, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="13" font-weight="600" fill="#1f2328" text-anchor="middle" xml:space="preserve">KohakuTerrarium agent</text>
+<text x="126.0" y="100.0" font-family="-apple-system, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="12" fill="#1f2328" text-anchor="middle" xml:space="preserve">or any MCP client</text>
+<text x="126.0" y="118.0" font-family="-apple-system, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="12" fill="#1f2328" text-anchor="middle" xml:space="preserve">mcp_servers: sandbox-lab</text>
+<rect x="32" y="180" width="188" height="96" rx="5" fill="#a6e0e3" stroke="#1b7c83" stroke-width="1"/>
+<text x="126.0" y="214.0" font-family="-apple-system, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="13" font-weight="600" fill="#1f2328" text-anchor="middle" xml:space="preserve">you</text>
+<text x="126.0" y="232.0" font-family="-apple-system, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="12" fill="#1f2328" text-anchor="middle" xml:space="preserve">kt-sandbox connect</text>
+<text x="126.0" y="250.0" font-family="-apple-system, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="12" fill="#1f2328" text-anchor="middle" xml:space="preserve">a real terminal</text>
+<rect x="305" y="10" width="250" height="300" rx="4" fill="#f6f8fa" stroke="#d1d9e0" stroke-width="1"/>
+<text x="319" y="32" font-family="-apple-system, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="14" font-weight="600" fill="#bc4c00" text-anchor="start" xml:space="preserve">sandbox container</text>
+<text x="541" y="32" font-family="-apple-system, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="12" fill="#59636e" text-anchor="end" xml:space="preserve">persistent</text>
+<rect x="321" y="48" width="218" height="96" rx="5" fill="#ffc999" stroke="#bc4c00" stroke-width="1"/>
+<text x="430.0" y="82.0" font-family="-apple-system, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="13" font-weight="600" fill="#1f2328" text-anchor="middle" xml:space="preserve">kt-sandbox-mcp</text>
+<text x="430.0" y="100.0" font-family="-apple-system, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="12" fill="#1f2328" text-anchor="middle" xml:space="preserve">bash · read · write · multi_edit</text>
+<text x="430.0" y="118.0" font-family="-apple-system, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="12" fill="#1f2328" text-anchor="middle" xml:space="preserve">glob · grep · tree</text>
+<rect x="321" y="180" width="218" height="96" rx="5" fill="#eaeef2" stroke="#818b98" stroke-width="1"/>
+<text x="430.0" y="214.0" font-family="-apple-system, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="13" font-weight="600" fill="#1f2328" text-anchor="middle" xml:space="preserve">shell · /work · your tools</text>
+<text x="430.0" y="232.0" font-family="-apple-system, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="12" fill="#1f2328" text-anchor="middle" xml:space="preserve">files and packages</text>
+<text x="430.0" y="250.0" font-family="-apple-system, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="12" fill="#1f2328" text-anchor="middle" xml:space="preserve">stay between calls</text>
+<text x="321" y="298" font-family="-apple-system, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="11" fill="#59636e" text-anchor="start" xml:space="preserve">limits: command time, output, CPU, memory, processes</text>
+<rect x="624" y="10" width="190" height="300" rx="4" fill="#f6f8fa" stroke="#d1d9e0" stroke-width="1"/>
+<text x="638" y="32" font-family="-apple-system, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="14" font-weight="600" fill="#9a6700" text-anchor="start" xml:space="preserve">standard level</text>
+<text x="800" y="32" font-family="-apple-system, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="12" fill="#59636e" text-anchor="end" xml:space="preserve">optional</text>
+<rect x="640" y="48" width="158" height="84" rx="5" fill="#eaeef2" stroke="#818b98" stroke-width="1"/>
+<text x="719.0" y="76.0" font-family="-apple-system, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="13" font-weight="600" fill="#1f2328" text-anchor="middle" xml:space="preserve">allowed hosts</text>
+<text x="719.0" y="94.0" font-family="-apple-system, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="12" fill="#1f2328" text-anchor="middle" xml:space="preserve">pypi.org · github.com</text>
+<text x="719.0" y="112.0" font-family="-apple-system, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="12" fill="#1f2328" text-anchor="middle" xml:space="preserve">and the ones you add</text>
+<rect x="640" y="180" width="158" height="96" rx="5" fill="#ffe27a" stroke="#9a6700" stroke-width="1"/>
+<text x="719.0" y="214.0" font-family="-apple-system, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="13" font-weight="600" fill="#1f2328" text-anchor="middle" xml:space="preserve">egress proxy</text>
+<text x="719.0" y="232.0" font-family="-apple-system, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="12" fill="#1f2328" text-anchor="middle" xml:space="preserve">a credential per sandbox</text>
+<text x="719.0" y="250.0" font-family="-apple-system, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="12" fill="#1f2328" text-anchor="middle" xml:space="preserve">DNS and caps here</text>
+<line x1="220" y1="96" x2="321" y2="96" stroke="#0969da" stroke-width="1.5" marker-end="url(#hb)"/>
+<text x="270" y="86" font-family="-apple-system, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="12" font-weight="600" fill="#0969da" text-anchor="middle" xml:space="preserve">MCP</text>
+<line x1="220" y1="228" x2="321" y2="228" stroke="#1b7c83" stroke-width="1.5" marker-end="url(#ht)" marker-start="url(#ht)"/>
+<text x="270" y="218" font-family="-apple-system, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="12" font-weight="600" fill="#1b7c83" text-anchor="middle" xml:space="preserve">terminal</text>
+<line x1="555" y1="228" x2="640" y2="228" stroke="#9a6700" stroke-width="1.5" marker-end="url(#hy)"/>
+<text x="597" y="214" font-family="-apple-system, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="12" font-weight="600" fill="#9a6700" text-anchor="middle" xml:space="preserve">own</text>
+<text x="597" y="246" font-family="-apple-system, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="12" font-weight="600" fill="#9a6700" text-anchor="middle" xml:space="preserve">network</text>
+<line x1="719" y1="180" x2="719" y2="132" stroke="#9a6700" stroke-width="1.5" marker-end="url(#hy)"/>
+<rect x="16" y="346" width="798" height="120" rx="4" fill="#f6f8fa" stroke="#d1d9e0" stroke-width="1"/>
+<text x="30" y="368" font-family="-apple-system, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="14" font-weight="600" fill="#1f2328" text-anchor="start" xml:space="preserve">kt-sandbox manager</text>
+<text x="800" y="368" font-family="-apple-system, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="12" fill="#59636e" text-anchor="end" xml:space="preserve">the CLI; talks to Docker</text>
+<rect x="32" y="380" width="178" height="70" rx="5" fill="#f6f8fa" stroke="#0969da" stroke-width="1"/>
+<text x="121.0" y="410.0" font-family="-apple-system, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="13" font-weight="600" fill="#1f2328" text-anchor="middle" xml:space="preserve">up · down · rm · ls</text>
+<text x="121.0" y="428.0" font-family="-apple-system, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="12" fill="#1f2328" text-anchor="middle" xml:space="preserve">open a sandbox at a level</text>
+<rect x="226" y="380" width="178" height="70" rx="5" fill="#f6f8fa" stroke="#0969da" stroke-width="1"/>
+<text x="315.0" y="410.0" font-family="-apple-system, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="13" font-weight="600" fill="#1f2328" text-anchor="middle" xml:space="preserve">save · images</text>
+<text x="315.0" y="428.0" font-family="-apple-system, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="12" fill="#1f2328" text-anchor="middle" xml:space="preserve">docker commit, any level later</text>
+<rect x="420" y="380" width="178" height="70" rx="5" fill="#f6f8fa" stroke="#0969da" stroke-width="1"/>
+<text x="509.0" y="410.0" font-family="-apple-system, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="13" font-weight="600" fill="#1f2328" text-anchor="middle" xml:space="preserve">build</text>
+<text x="509.0" y="428.0" font-family="-apple-system, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="12" fill="#1f2328" text-anchor="middle" xml:space="preserve">slim · data · render · dev</text>
+<rect x="614" y="380" width="178" height="70" rx="5" fill="#f6f8fa" stroke="#0969da" stroke-width="1"/>
+<text x="703.0" y="410.0" font-family="-apple-system, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="13" font-weight="600" fill="#1f2328" text-anchor="middle" xml:space="preserve">mcp · doctor · levels</text>
+<text x="703.0" y="428.0" font-family="-apple-system, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="12" fill="#1f2328" text-anchor="middle" xml:space="preserve">config and checks</text>
+<line x1="430" y1="346" x2="430" y2="310" stroke="#818b98" stroke-width="1.5" marker-end="url(#hg)"/>
+<text x="440" y="332" font-family="-apple-system, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif" font-size="11" fill="#59636e" text-anchor="start" xml:space="preserve">Docker API: create with the level's settings</text>
+</svg>
