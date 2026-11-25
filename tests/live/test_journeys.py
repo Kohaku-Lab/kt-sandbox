@@ -2,8 +2,11 @@
 
 import asyncio
 import gzip
+import os
+import socket
 import time
 
+import httpx
 import pytest
 import yaml
 from mcp import ClientSession, StdioServerParameters
@@ -15,6 +18,14 @@ from kt_sandbox.errors import ManagerError, NotAFile, NotFound, TooLarge
 from kt_sandbox.manager.options import container_name
 
 TOOLS = {"bash", "read", "write", "multi_edit", "glob", "grep", "tree"}
+# An image built before the current package, with the server's dependencies;
+# without it the upgrade steps run on a sandbox from the image under test.
+PRE_IMAGE = os.environ.get("KT_SANDBOX_LIVE_PRE_IMAGE", "")
+# An image whose server predates KohakuTerrarium's tools.
+OLD_IMAGE = os.environ.get(
+    "KT_SANDBOX_LIVE_OLD_IMAGE", "ghcr.io/kohaku-lab/kt-sandbox:slim"
+)
+TOKEN = "live-token"
 
 
 def stdio_params(name: str) -> StdioServerParameters:
@@ -64,6 +75,50 @@ def assert_lines(text: str, *lines: str) -> None:
         assert line in present, f"{line!r} not in:\n{text}"
 
 
+def free_port() -> int:
+    with socket.socket() as probe:
+        probe.bind(("127.0.0.1", 0))
+        return probe.getsockname()[1]
+
+
+def serve_http(container) -> None:
+    """Start the sandbox's MCP server over HTTP in the background, with :data:`TOKEN`."""
+    container.exec_run(
+        ["kt-sandbox-mcp", "--transport", "http", "--port", "8765"],
+        environment={"KT_SANDBOX_MCP_TOKEN": TOKEN},
+        detach=True,
+    )
+
+
+def fetch(port: int, path: str, token: str | None = TOKEN) -> httpx.Response:
+    """GET ``/mcp/files`` on ``port``, retrying until the server answers."""
+    headers = {"Authorization": f"Bearer {token}"} if token else {}
+    deadline = time.monotonic() + 30
+    while True:
+        try:
+            return httpx.get(
+                f"http://127.0.0.1:{port}/mcp/files",
+                params={"path": path},
+                headers=headers,
+                timeout=10,
+            )
+        except httpx.TransportError:
+            if time.monotonic() > deadline:
+                raise
+            time.sleep(0.3)
+
+
+def wait_closed(port: int) -> None:
+    deadline = time.monotonic() + 15
+    while time.monotonic() < deadline:
+        try:
+            httpx.get(f"http://127.0.0.1:{port}/mcp", timeout=1)
+        except httpx.TransportError:
+            return
+        time.sleep(0.3)
+    raise AssertionError(f"the server on port {port} did not stop")
+
+
 async def py(name: str, code: str, **arguments) -> str:
     """Run a Python snippet through ``bash`` with a here-document."""
     return await sh(name, f"python3 - <<'PY'\n{code}\nPY", **arguments)
@@ -98,7 +153,7 @@ async def test_set_up_open_save_and_reopen_strict(
     instructions, listed, own_name = await mcp_session(registered, first_look)
     assert listed == TOOLS and own_name == f"{lab}\n"
     assert f"inside the sandbox {lab}:" in instructions
-    assert f"`sandbox:{lab}/<path>`" in instructions
+    assert "sandbox:" not in instructions.replace(f"the sandbox {lab}:", "")
     assert instructions.splitlines()[1:] == [
         "Level open: the network is open. `sudo` works without a password. "
         "Each command runs up to 300 s.",
@@ -315,6 +370,66 @@ async def test_set_up_open_save_and_reopen_strict(
     manager.up(moved, level_name="strict", image=image_ref)
     carried = await sh(moved, "cat /work/notes.txt; ls /usr/local/marker")
     assert "mine" in carried and "/usr/local/marker" in carried
+
+    # `upgrade` puts this kt-sandbox into a sandbox from an earlier image.
+    pre, port = names("pre"), free_port()
+    manager.up(pre, level_name="open", image=PRE_IMAGE or image, publish=port)
+    box = manager.client.containers.get(container_name(pre))
+    box.exec_run(
+        [
+            "python3",
+            "-c",
+            "import os; os.makedirs('/work/out', exist_ok=True); "
+            "open('/work/out/x.png', 'wb').write(b'\\x89PNG\\r\\n\\x1a\\n' + "
+            "os.urandom(300000)); os.symlink('/etc/passwd', '/work/out/passwd')",
+        ]
+    )
+    if PRE_IMAGE:
+        assert box.exec_run(["test", "-e", "/usr/local/bin/kt-sandbox-file"])[0] != 0
+        serve_http(box)
+        assert fetch(port, "out/x.png").status_code == 404
+        box.exec_run(["pkill", "-f", "kt_sandbox.server|kt-sandbox-mcp"])
+        wait_closed(port)
+    stale = "/opt/kt-sandbox/kt_sandbox/stale_module.py"
+    box.exec_run(["touch", stale], user="root")
+    manager.down(pre)
+    assert main(["upgrade", pre]) == 0
+    printed = capsys.readouterr().out
+    assert f"upgraded {pre}" in printed and "were not checked" in printed
+    assert (
+        f"docker exec {container_name(pre)} pkill -f 'kt-sandbox-mcp|kt_sandbox.server', then start "
+        "it again (stdio servers restart on the next connection)."
+    ) in printed
+    box.reload()
+    assert box.status == "exited"
+    manager.up(pre)
+    assert box.exec_run(["test", "-e", stale])[0] != 0
+    assert main(["upgrade", pre]) == 0
+    assert "were not checked" not in capsys.readouterr().out
+    serve_http(box)
+    png = box.exec_run(["cat", "/work/out/x.png"])[1]
+    got = fetch(port, "out/x.png")
+    assert got.status_code == 200 and got.content == png and len(png) == 300008
+    assert got.headers["x-kt-sandbox-size"] == "300008"
+    assert fetch(port, "/work/out/x.png").content == png
+    assert fetch(port, "out/x.png", token=None).status_code == 401
+    linked = fetch(port, "out/passwd")
+    assert linked.status_code == 422 and "symbolic link" in linked.json()["error"]
+    assert fetch(port, "out/nope.png").status_code == 404
+    code, output = box.exec_run(["kt-sandbox-file", "out/x.png"])
+    assert code == 0 and output == png
+    assert box.exec_run(["kt-sandbox-file", "out/passwd"])[0] == 4
+    assert await mcp_call(pre, "glob", pattern="out/*.png") == "out/x.png"
+    assert box.exec_run(["pkill", "-f", "kt-sandbox-mcp"])[0] == 0
+    wait_closed(port)
+
+    # A sandbox whose server predates KohakuTerrarium's tools is left alone.
+    old = names("old")
+    manager.up(old, level_name="open", image=OLD_IMAGE)
+    with pytest.raises(ManagerError, match="too old to upgrade in place"):
+        manager.upgrade(old)
+    old_box = manager.client.containers.get(container_name(old))
+    assert old_box.exec_run(["test", "-e", "/usr/local/bin/kt-sandbox-file"])[0] != 0
 
 
 async def test_allowlist_level_reaches_only_its_hosts_and_isolates_sandboxes(
