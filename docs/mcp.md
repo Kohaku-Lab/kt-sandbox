@@ -54,23 +54,90 @@ same variables.
 | `KT_SANDBOX_WORKDIR` | where the tools work | `/work` if it exists, else the current folder |
 | `KT_SANDBOX_WALL_S` | longest one command may run | 30 |
 | `KT_SANDBOX_OUTPUT_BYTES` | most text one result returns | 12288 |
-| `KT_SANDBOX_NAME` | the sandbox's name, used in the server's instructions | none |
+| `KT_SANDBOX_NAME` | the sandbox's name, used in the server's instructions (`--name` overrides it) | none |
+| `KT_SANDBOX_LEVEL` | the level the sandbox was opened at | none |
+| `KT_SANDBOX_NETWORK` | `none`, `allowlist` or `open` | none |
+| `KT_SANDBOX_ALLOW` | the allowed hosts, separated by commas | none |
+| `KT_SANDBOX_SUDO` | `1` if `sudo` works, `0` if not | none |
 | `KT_SANDBOX_MCP_TOKEN` | bearer token for `--transport http` | none (refuses to start) |
 
-The server's instructions tell the model that the tools run inside the sandbox,
-in the work folder, and that files and packages stay between calls. With
-`KT_SANDBOX_NAME` set, they add that a file can be passed to a tool that takes a
-file or media argument as `sandbox:<name>/<path>`.
+A blank value means the default. A value that is not a whole number, a network
+mode or `0`/`1` stops the server with a message that names the variable.
+
+The manager sets `LEVEL`, `NETWORK`, `ALLOW` and `SUDO` for every sandbox at
+every level, so a sandbox opened from a saved image gets its own level's values,
+not those of the level the image was saved at. They never hold the egress
+proxy's credential.
+
+## The server's instructions
+
+The server sends instructions that a client shows its model. They say that the
+tools run inside the sandbox, in the work folder, and that files and packages
+stay between calls. With a name set (`KT_SANDBOX_NAME`, or `--name` on a server
+started by hand), they add that a file can be handed to a tool that takes a file
+or media argument by writing it as `sandbox:<name>/<path>`; a tool without sandbox
+support says so. A server without a name gives no such handle.
+
+When the manager opened the sandbox, two more lines follow: the facts of its
+level, and where to read about the rest. For a sandbox `bot` at `strict`:
+
+```
+You work inside the sandbox bot: these tools run there, in /work, and files and packages stay between calls. A file here can be handed to a tool that takes a file or media argument by writing it as `sandbox:bot/<path>`; a tool without sandbox support says so.
+Level strict: the sandbox is offline; work with the files and packages already here. Commands run as the user `sandbox`, without sudo. Each command runs up to 15 s.
+Programs, Python packages and live usage: /home/sandbox/.kt-sandbox/about.md (written when this server started), or run `kt-sandbox-about` for a fresh view.
+```
+
+The level line of the other presets:
+
+```
+Level standard: the network reaches only pypi.org, files.pythonhosted.org, github.com, raw.githubusercontent.com, through a proxy already set up. Commands run as the user `sandbox`, without sudo; `pip install` installs into its home. Each command runs up to 60 s.
+Level open: the network is open. `sudo` works without a password. Each command runs up to 300 s.
+```
+
+Overrides such as `--allow` or `--wall` change the facts to match. A server
+started by hand without these variables sends only the first line. If the about
+file cannot be written, the last line names only `kt-sandbox-about`.
+
+## The about document
+
+`kt-sandbox-about` prints a short Markdown document about the sandbox it runs
+in, read from the running container:
+
+| Section | Shows |
+|---|---|
+| Policy | level, network and allowed hosts, sudo, user, time limit of one command, text limit of one result, work folder |
+| Usage now | memory used and its limit, CPU limit, processes and tasks against the process limit (from the cgroup), free disk in the work folder |
+| Image and programs | the tiers the image was built with, and which of a fixed list of programs are on `PATH` (looked up, not run) |
+| Python | the installed distributions with versions, apart from the server's own packages and what they need; the server's direct packages on a line of their own |
+| Notes | the usage notes of each tier in the image |
+
+A value that cannot be read says `unknown`; the command still exits 0. The
+document is built only from those facts: it never shows environment variables,
+proxy settings or tokens.
+
+The server writes the same document to `~/.kt-sandbox/about.md`
+(`/home/sandbox/.kt-sandbox/about.md`) each time it starts, which for stdio is
+each time a client connects. The file therefore shows the sandbox as it was when
+the session began: a package installed during the session appears in
+`kt-sandbox-about` at once and in the file from the next session. The server
+writes the file only when the manager set the level's values; a failed write is
+logged and the server starts anyway.
 
 ## Command line
 
 ```
 kt-sandbox-mcp [--transport stdio|http] [--host 0.0.0.0] [--port 8765]
-               [--token-env KT_SANDBOX_MCP_TOKEN] [--insecure-no-auth]
+               [--token-env KT_SANDBOX_MCP_TOKEN] [--insecure-no-auth] [--name NAME]
 ```
 
 Over HTTP the endpoint is `/mcp`. Bound to a loopback address, the server
 accepts only loopback `Host` and `Origin` headers.
+
+```
+kt-sandbox-about        # or python -m kt_sandbox.server.about
+```
+
+prints the about document to standard output.
 
 ## For KohakuTerrarium
 

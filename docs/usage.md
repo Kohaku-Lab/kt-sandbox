@@ -45,6 +45,23 @@ limits. Nothing about the old level is in the image; proxy variables and
 credentials from a `standard` sandbox are blanked when a sandbox opens at
 another level.
 
+## What the sandbox tells the agent
+
+An agent learns what its sandbox has without trying things out:
+
+- **The server's instructions** carry the facts of the level: the level's name,
+  where the network reaches (nowhere, the allowed hosts, or everywhere), whether
+  `sudo` works, and how long one command may run. They end by pointing at the
+  about document.
+- **The about document** lists the policy, live usage (memory, CPU, processes,
+  disk), the image's tiers, which common programs are installed, the Python
+  packages with versions, and usage notes for each tier. The server writes it
+  to `~/.kt-sandbox/about.md` when it starts; `kt-sandbox-about` prints a fresh
+  copy, for example after installing something.
+
+You can read it yourself with `docker exec kt-sandbox-NAME kt-sandbox-about`.
+The exact text is in [MCP tools](mcp.md#the-servers-instructions).
+
 ## Images
 
 `kt-sandbox build` assembles the image from tiers. `slim` is always installed.
@@ -63,6 +80,11 @@ kt-sandbox build --extras data,render -t my-sandbox
 kt-sandbox build --apt tmux --pip duckdb -t my-sandbox
 kt-sandbox up lab --from my-sandbox
 ```
+
+Each tier has a short usage note (`manager/image/notes/<tier>.md`), which the
+image keeps for `kt-sandbox-about`. The `browser` tier's note says how to
+start Chromium from Playwright; Chromium needs more processes than `strict`
+allows (64), so open such a sandbox with `--pids 256` or use `standard`.
 
 `build` copies the installed `kt_sandbox` package (from a checkout or from a
 git install) into the image, so the image runs the same version as your
@@ -128,8 +150,12 @@ mcp_servers:
     transport: streamable_http
     url: http://localhost:18765/mcp
     headers:
-      Authorization: "Bearer ${SANDBOX_TOKEN}"
+      Authorization: "Bearer <token>"
 ```
+
+Use the exact token you passed as `KT_SANDBOX_MCP_TOKEN`. In KohakuTerrarium's
+settings, choose the transport "Streamable HTTP"; "SSE" is the older protocol,
+which this server does not speak.
 
 The HTTP server refuses to start without a token unless you pass
 `--insecure-no-auth`.

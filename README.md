@@ -25,6 +25,10 @@ that image again at a stricter security level.
   start. `kt-sandbox save` turns a sandbox into an image you can open again.
 - **A level is policy, never part of the image.** Network, CPU, memory, process
   count, command time and sudo are set when a sandbox is opened.
+- **The agent knows its sandbox.** The server's instructions state the level's
+  network, sudo and time limit, and `kt-sandbox-about` (also written to
+  `~/.kt-sandbox/about.md`) lists the programs, Python packages, tiers and live
+  usage.
 
 | Level | Network | sudo | CPUs / memory / processes | One command |
 |---|---|---|---|---|

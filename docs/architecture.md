@@ -12,7 +12,8 @@ kt-sandbox ships two things: a **sandbox image** with an MCP server in it, and a
 
 | Part | Job |
 |---|---|
-| `server/` | The MCP server that runs inside a sandbox. Knows nothing of Docker. Limits come from environment variables. |
+| `server/` | The MCP server that runs inside a sandbox. Knows nothing of Docker. Limits and the level's policy come from environment variables. |
+| `server/about/` | The about document (`kt-sandbox-about`): policy, live usage from the cgroup, tiers, programs and Python packages of the running sandbox. |
 | `levels/` | The `Level` model and the presets `open`, `standard`, `strict`. |
 | `manager/options.py` | Turns a level into container settings: limits, network, sudo, runtime, labels, environment. Pure, tested without Docker. |
 | `manager/docker/` | The Docker calls: containers, images, and the allowlist network plumbing. |
@@ -48,9 +49,11 @@ kt-sandbox ships two things: a **sandbox image** with an MCP server in it, and a
 ## The image
 
 `kt-sandbox build` copies the installed `kt_sandbox` package into the build
-context. The image keeps it in `/opt/kt-sandbox` (on `PYTHONPATH`) and has two
-commands: `kt-sandbox-mcp` (`python -m kt_sandbox.server`) and `kt-sandbox`
-(`python -m kt_sandbox`, which the egress proxy runs).
+context. The image keeps it in `/opt/kt-sandbox` (on `PYTHONPATH`) and has three
+commands: `kt-sandbox-mcp` (`python -m kt_sandbox.server`), `kt-sandbox-about`
+(`python -m kt_sandbox.server.about`) and `kt-sandbox` (`python -m kt_sandbox`,
+which the egress proxy runs). The tiers it was built with and their usage notes
+are in `/usr/local/share/kt-sandbox`.
 
 The server's runtime packages are listed in `manager/image/`:
 `runtime-requirements.txt` (installed normally: `mcp` and the packages
